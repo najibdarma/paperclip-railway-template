@@ -1,10 +1,7 @@
 FROM node:20-slim
 
-# Install gosu for privilege dropping in entrypoint
-RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
-
-# Install curl
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Install Claude CLI to a system-wide location, then ensure it's on PATH
 RUN curl -fsSL https://claude.ai/install.sh | bash
