@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paperclip — Railway Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f0f10;
+      --surface: #18181b;
+      --border:  #27272a;
+      --accent:  #6366f1;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error:   #ef4444;
+      --text:    #fafafa;
+      --muted:   #71717a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 780px;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .card-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 23px; flex-shrink: 0;
+    }
+    .card-header h1 { font-size: 21px; font-weight: 600; }
+    .card-header p  { font-size: 15px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      gap: 0;
+    }
+    .tab {
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab:hover  { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── Body ── */
+    .card-body { padding: 28px 32px 36px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section labels ── */
+    .section-label {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* ── Banners ── */
+    .banner {
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 15px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+      line-height: 1.5;
+    }
+    .banner.info    { background: #1e1b4b; border: 1px solid #3730a3; color: #c7d2fe; }
+    .banner.success { background: #052e16; border: 1px solid var(--success); color: #bbf7d0; }
+    .banner.warn    { background: #1c1400; border: 1px solid var(--warning); color: #fde68a; }
+    .banner.error   { background: #1f0707; border: 1px solid var(--error);   color: #fca5a5; }
+
+    /* ── Env var table ── */
+    .var-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+    .var-row {
+      display: grid;
+      grid-template-columns: 210px 1fr 72px;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 16px;
+    }
+    .var-row.ok      { border-color: #166534; }
+    .var-row.missing { border-color: var(--error); }
+    .var-key  { font-size: 14px; font-weight: 600; font-family: monospace; }
+    .var-key small { display: block; font-family: sans-serif; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .var-hint { font-size: 14px; color: var(--muted); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .var-badge { text-align: right; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .var-badge.ok      { color: var(--success); }
+    .var-badge.missing { color: var(--error); }
+    .var-badge.optional{ color: var(--muted); }
+
+    /* ── API key note ── */
+    .api-key-section { margin-top: 16px; }
+    .api-key-section .section-label { margin-bottom: 10px; }
+    .api-key-section ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.9; }
+    .api-key-section li strong { color: inherit; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--border);  color: var(--text); }
+    .btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-danger    { background: #450a0a; color: #fca5a5; border: 1px solid var(--error); }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
+
+    /* ── Invite box ── */
+    .invite-box {
+      background: var(--bg);
+      border: 1px solid #166534;
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .invite-box h3 { font-size: 15px; font-weight: 600; color: #bbf7d0; margin-bottom: 12px; }
+    .url-row { display: flex; gap: 8px; align-items: center; }
+    .url-input {
+      flex: 1; min-width: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 12px;
+      border-radius: 6px; font-size: 14px; font-family: monospace;
+    }
+    .invite-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .invite-note { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+    .invite-note code { background: var(--border); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+    /* ── Admin exists box ── */
+    .admin-exists-box {
+      background: var(--bg);
+      border: 1px solid var(--warning);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .admin-exists-box h3 { font-size: 15px; font-weight: 600; color: #fde68a; margin-bottom: 8px; }
+    .admin-exists-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+    /* ── Dashboard box ── */
+    .dashboard-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .dashboard-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .dashboard-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+    /* ── Reset section ── */
+    .reset-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 24px;
+    }
+    .reset-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .reset-box p  { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 14px; height: 14px; flex-shrink: 0;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    code { background: var(--border); padding: 1px 5px; border-radius: 4px; font-size: 14px; font-family: monospace; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .text-muted { color: var(--muted); font-size: 15px; }
+
+    /* ── Help button ── */
+    .help-btn {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .help-btn:hover { color: var(--text); border-color: var(--accent); background: #1e1b4b; }
+    .help-btn .help-icon {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--muted); color: var(--bg);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .help-btn:hover .help-icon { background: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <div class="card-header">
+    <div class="logo">📎</div>
+    <div>
+      <h1>Paperclip — Railway</h1>
+      <p id="header-subtitle">Loading...</p>
+    </div>
+    <a class="help-btn" href="https://github.com/praveen-ks-2001/paperclip-railway-template/issues" target="_blank">
+      <span class="help-icon">i</span>
+      Having issues?
+    </a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('setup')">Setup</button>
+    <button class="tab" onclick="showTab('manage')" id="tab-manage">Manage</button>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ══════════════════════════════════════════════
+         TAB: SETUP
+    ══════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="panel-setup">
+
+      <div class="section-label">Environment variables</div>
+
+      <div id="setup-banner" class="banner info">
+        <span class="spinner"></span>
+        <span>Checking environment variables...</span>
+      </div>
+      <div class="var-list" id="var-list"></div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="launch-btn" disabled onclick="goToManage()">▶️ Go to Manage</button>
+        <button class="btn btn-secondary" onclick="loadStatus()">🔄 Refresh</button>
+        <span class="text-muted" id="launch-note" style="display:none">Paperclip is running — switch to the Manage tab.</span>
+      </div>
+
+      <div id="setup-hint" class="banner info" style="display:none; margin-top:16px;">
+        💡 If any variables are missing, add them in Railway → <strong>Variables</strong> tab, then click <strong>Refresh</strong>.
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         TAB: MANAGE
+    ══════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-manage">
+
+      <!-- Invite section -->
+      <div class="section-label">Admin registration</div>
+
+      <div id="invite-waiting" class="banner info" style="display:none">
+        <span class="spinner"></span>
+        <span>Waiting for Paperclip to start and generate the bootstrap invite...</span>
+      </div>
+
+      <div id="invite-not-launched" class="banner warn" style="display:none">
+        ⚠️ Paperclip hasn't been launched yet. Go to the Setup tab and verify environment variables first.
+      </div>
+
+      <!-- Shown when invite URL is available -->
+      <div id="invite-box" class="invite-box" style="display:none">
+        <h3>✅ Paperclip is running — register your admin account:</h3>
+        <div class="url-row">
+          <input class="url-input" id="invite-url" readonly placeholder="Loading..." />
+          <button class="btn btn-secondary" onclick="copyInvite(this)">📋 Copy</button>
+        </div>
+        <div class="invite-actions">
+          <a id="invite-link" href="#" target="_blank">
+            <button class="btn btn-primary">🔗 Open invite link</button>
+          </a>
+          <button class="btn btn-ghost" id="rotate-btn" onclick="rotateInvite(this)">🔄 Rotate link</button>
+        </div>
+      </div>
+
+      <!-- Shown when admin already exists (no invite generated) -->
+      <div id="admin-exists-box" class="admin-exists-box" style="display:none">
+        <h3>⚠️ An admin account already exists</h3>
+        <p id="admin-exists-msg">Paperclip skipped generating a bootstrap invite because an admin is already registered. You can log in directly from the dashboard below.</p>
+        <button class="btn btn-ghost" id="force-rotate-btn" onclick="rotateInvite(this)">🔄 Generate new invite anyway</button>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Dashboard link -->
+      <div class="section-label">Dashboard</div>
+      <div class="dashboard-box" id="dashboard-box">
+        <h3>🏠 Open Paperclip Dashboard</h3>
+        <p>Once you've registered or logged in as admin, use this to access your Paperclip dashboard directly.</p>
+        <a id="dashboard-link" href="/" target="_blank">
+          <button class="btn btn-primary">🚀 Open Dashboard</button>
+        </a>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Status -->
+      <div class="section-label">Status</div>
+      <div id="manage-status" class="banner info">
+        <span class="spinner"></span><span>Loading...</span>
+      </div>
+
+      <!-- Reset -->
+      <div class="reset-box">
+        <h3>⚠️ Reset setup</h3>
+        <p>
+          Deletes <code>config.json</code> and the saved invite link from the volume,
+          then stops Paperclip. On next boot, the setup flow runs again.<br><br>
+          <strong>This does NOT delete your database.</strong> All users, companies, and data
+          in Postgres remain intact. To fully start over, delete the Postgres service in Railway
+          and add a new one.
+        </p>
+        <button class="btn btn-danger" onclick="resetSetup()">🗑 Reset setup</button>
+      </div>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+
+  let appReady   = false;
+  let pcReady    = false;
+  let inviteUrl  = null;
+  let invitePoll = null;
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['setup','manage'][i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'manage') refreshManage();
+  }
+
+  function goToManage() {
+    // Auto-launch if not already running, then switch to manage tab
+    if (!pcReady) {
+      launchAndSwitchToManage();
+    } else {
+      showTab('manage');
+    }
+  }
+
+  // ── Status polling ─────────────────────────────────────────────────────────
+
+  async function loadStatus() {
+    try {
+      const res  = await fetch('/setup/status');
+      const data = await res.json();
+      appReady = data.ready;
+      pcReady  = data.paperclipReady;
+      renderVars(data.vars);
+      updateSetupBanner(data.vars, data.ready);
+      updateHeader(data.ready, data.paperclipReady);
+    } catch(e) {
+      document.getElementById('setup-banner').className = 'banner error';
+      document.getElementById('setup-banner').textContent = '❌ Cannot reach setup server.';
+    }
+  }
+
+  function updateHeader(ready, pcReady) {
+    const sub = document.getElementById('header-subtitle');
+    if (!ready)   sub.textContent = 'Ensure all required environment variables are set.';
+    else if (!pcReady) sub.textContent = 'Paperclip is starting up...';
+    else          sub.textContent = 'Paperclip is running.';
+  }
+
+  function renderVars(vars) {
+    const anthropicSet = vars.find(v => v.key === 'ANTHROPIC_API_KEY')?.set;
+    const openaiSet    = vars.find(v => v.key === 'OPENAI_API_KEY')?.set;
+    const neitherSet   = !anthropicSet && !openaiSet;
+
+    const apiKeyNote = `
+      <div class="api-key-section">
+        <div class="section-label">Agent API Keys</div>
+        <div class="banner ${neitherSet ? 'warn' : 'info'}">
+          <div>
+            ${neitherSet ? '⚠️ Neither API key is set.' : 'ℹ️ API key status:'} At least one is required for Paperclip agents to run — without it, adapter probes and agent runs will fail.
+            <ul>
+              <li><strong>Claude (Anthropic)</strong> — any paid Claude subscription + <code>ANTHROPIC_API_KEY</code></li>
+              <li><strong>Codex (OpenAI)</strong> — any paid OpenAI subscription + <code>OPENAI_API_KEY</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>`;
+
+    let html = '';
+    for (const v of vars) {
+      if (v.key === 'ANTHROPIC_API_KEY') html += apiKeyNote;
+      const rowCls   = v.missing ? 'missing' : v.set ? 'ok' : '';
+      const badgeCls = v.missing ? 'missing' : v.set ? 'ok' : 'optional';
+      const badgeTxt = v.missing ? '✗ Required' : v.set ? '✓ Set' : '— Optional';
+      html += `<div class="var-row ${rowCls}">
+        <div class="var-key">${v.key}<small>${v.label}</small></div>
+        <div class="var-hint">${v.set ? '(set)' : v.example}</div>
+        <div class="var-badge ${badgeCls}">${badgeTxt}</div>
+      </div>`;
+    }
+    document.getElementById('var-list').innerHTML = html;
+  }
+
+  function updateSetupBanner(vars, ready) {
+    const btn     = document.getElementById('launch-btn');
+    const note    = document.getElementById('launch-note');
+    const banner  = document.getElementById('setup-banner');
+    const hint    = document.getElementById('setup-hint');
+    const missing = vars.filter(v => v.missing);
+
+    if (appReady && pcReady) {
+      // Already launched
+      banner.className = 'banner success';
+      banner.textContent = '✅ Paperclip is running. Switch to the Manage tab.';
+      btn.disabled = false;
+      btn.textContent = '▶️ Go to Manage';
+      hint.style.display = 'none';
+      note.style.display = 'none';
+    } else if (missing.length === 0) {
+      banner.className = 'banner success';
+      banner.textContent = '✅ All required variables are set. Click "Go to Manage" to launch Paperclip.';
+      btn.disabled = false;
+      hint.style.display = 'none';
+    } else {
+      banner.className = 'banner warn';
+      banner.innerHTML = `⚠️ ${missing.length} required variable${missing.length > 1 ? 's' : ''} missing: <strong>${missing.map(v => v.key).join(', ')}</strong>`;
+      btn.disabled = true;
+      hint.style.display = 'flex';
+    }
+  }
+
+  // ── Launch ─────────────────────────────────────────────────────────────────
+
+  async function launchAndSwitchToManage() {
+    const btn = document.getElementById('launch-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Launching...';
+
+    try {
+      const res  = await fetch('/setup/launch', { method: 'POST' });
+      const data = await res.json();
+      if (data.already) {
+        showTab('manage');
+        return;
+      }
+    } catch(_) {}
+
+    // Poll status until paperclip is ready, then switch to manage tab
+    const interval = setInterval(async () => {
+      await loadStatus();
+      if (pcReady) {
+        clearInterval(interval);
+        btn.textContent = '▶️ Go to Manage';
+        btn.disabled = false;
+        showTab('manage');
+      }
+    }, 2500);
+  }
+
+  // ── Manage tab ─────────────────────────────────────────────────────────────
+
+  async function refreshManage() {
+    await loadStatus();
+
+    // Auto-launch if env vars are set but Paperclip isn't running yet
+    if (allVarsSet() && !pcReady && !appReady) {
+      try {
+        await fetch('/setup/launch', { method: 'POST' });
+      } catch(_) {}
+    }
+
+    const waiting      = document.getElementById('invite-waiting');
+    const notLaunched  = document.getElementById('invite-not-launched');
+    const box          = document.getElementById('invite-box');
+    const adminExists  = document.getElementById('admin-exists-box');
+    const statusDiv    = document.getElementById('manage-status');
+
+    // Status banner
+    if (pcReady) {
+      statusDiv.className = 'banner success';
+      statusDiv.textContent = '✅ Paperclip is running and healthy.';
+    } else if (appReady) {
+      statusDiv.className = 'banner info';
+      statusDiv.innerHTML = '<span class="spinner"></span><span>Paperclip is starting up...</span>';
+    } else {
+      statusDiv.className = 'banner warn';
+      statusDiv.textContent = '⚠️ Paperclip has not been launched yet.';
+    }
+
+    // Invite section
+    if (!appReady && !pcReady) {
+      // Not launched yet — try to launch automatically
+      if (allVarsSet()) {
+        waiting.style.display     = 'flex';
+        notLaunched.style.display = 'none';
+        box.style.display         = 'none';
+        adminExists.style.display = 'none';
+
+        try {
+          await fetch('/setup/launch', { method: 'POST' });
+        } catch(_) {}
+
+        startInvitePoll();
+      } else {
+        waiting.style.display     = 'none';
+        notLaunched.style.display = 'block';
+        box.style.display         = 'none';
+        adminExists.style.display = 'none';
+      }
+      return;
+    }
+
+    notLaunched.style.display = 'none';
+
+    // Try fetching existing invite
+    const inv = await fetchInvite();
+    if (inv.url) {
+      showInviteBox(inv.url);
+      adminExists.style.display = 'none';
+    } else if (inv.skippedReason) {
+      // Admin already exists — show message instead of invite
+      showAdminExistsBox(inv.skippedReason);
+    } else {
+      waiting.style.display     = 'flex';
+      box.style.display         = 'none';
+      adminExists.style.display = 'none';
+      startInvitePoll();
+    }
+  }
+
+  function allVarsSet() {
+    // Check from the last rendered vars
+    const badges = document.querySelectorAll('.var-badge.missing');
+    return badges.length === 0;
+  }
+
+  async function fetchInvite() {
+    try {
+      const res  = await fetch('/setup/invite');
+      const data = await res.json();
+      if (data.url) { inviteUrl = data.url; return { url: data.url }; }
+      if (data.skippedReason) return { skippedReason: data.skippedReason };
+    } catch(_) {}
+    return {};
+  }
+
+  function startInvitePoll() {
+    if (invitePoll) return;
+    let attempts = 0;
+    invitePoll = setInterval(async () => {
+      attempts++;
+      const inv = await fetchInvite();
+      if (inv.url) {
+        clearInterval(invitePoll);
+        invitePoll = null;
+        showInviteBox(inv.url);
+        document.getElementById('admin-exists-box').style.display = 'none';
+      } else if (inv.skippedReason) {
+        clearInterval(invitePoll);
+        invitePoll = null;
+        showAdminExistsBox(inv.skippedReason);
+      }
+      // Also update status
+      await loadStatus();
+      if (attempts > 90) {
+        clearInterval(invitePoll);
+        invitePoll = null;
+        document.getElementById('invite-waiting').innerHTML =
+          '⚠️ Could not retrieve invite URL. Check Railway deploy logs for details.';
+      }
+    }, 2500);
+  }
+
+  function showInviteBox(url) {
+    document.getElementById('invite-waiting').style.display = 'none';
+    document.getElementById('invite-box').style.display     = 'block';
+    document.getElementById('invite-url').value = url;
+    document.getElementById('invite-link').href = url;
+  }
+
+  function showAdminExistsBox(reason) {
+    document.getElementById('invite-waiting').style.display   = 'none';
+    document.getElementById('invite-box').style.display       = 'none';
+    document.getElementById('admin-exists-box').style.display = 'block';
+    document.getElementById('admin-exists-msg').textContent   = reason;
+  }
+
+  function copyInvite(btn) {
+    navigator.clipboard.writeText(document.getElementById('invite-url').value).then(() => {
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    });
+  }
+
+  async function rotateInvite(btn) {
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Generating...';
+    try {
+      const res  = await fetch('/setup/rotate-invite', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        showInviteBox(data.url);
+        document.getElementById('admin-exists-box').style.display = 'none';
+      } else {
+        alert('Rotation completed but no URL returned. Check Railway logs.');
+      }
+    } catch(e) {
+      alert('Failed to rotate invite. Check Railway logs.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
+
+  async function resetSetup() {
+    if (!confirm('Reset setup? This will stop Paperclip and delete config.json from the volume. Your database is NOT affected.')) return;
+    try {
+      await fetch('/setup/reset', { method: 'POST' });
+      inviteUrl = null;
+      appReady  = false;
+      pcReady   = false;
+      showTab('setup');
+      await loadStatus();
+    } catch(e) {
+      alert('Reset failed. Check Railway logs.');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  loadStatus();
+</script>
+</body>
+</html>

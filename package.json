@@ -1,0 +1,18 @@
+{
+  "name": "paperclip-railway",
+  "version": "1.0.0",
+  "description": "Railway wrapper for paperclipai/paperclip with a web-based setup page",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "paperclipai": "latest",
+    "@anthropic-ai/claude-code": "latest",
+    "@openai/codex": "latest"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
