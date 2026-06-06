@@ -1,7 +1,19 @@
 FROM node:20-slim
 
 # Install gosu for privilege dropping in entrypoint
-RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/* && apt install curl && curl https://cursor.com/install -fsS | bash && curl -fsSL https://claude.ai/install.sh | bash
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && rm -rf /var/lib/apt/lists/*
+
+# Install curl
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Install Claude CLI to a system-wide location, then ensure it's on PATH
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/root/.local/bin:${PATH}"
+RUN cp /root/.local/bin/claude /usr/local/bin/claude
+
+RUN curl -fsSL https://cursor.com/install | bash
+ENV PATH="/root/.local/bin:${PATH}"
+RUN cp /root/.local/bin/agent /usr/local/bin/agent
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
