@@ -40,6 +40,8 @@ COPY . .
 
 # Give ownership of everything to the non-root user
 RUN chown -R paperclip:paperclip /app /home/paperclip
+RUN chown -R paperclip:paperclip /usr/local/bin/claude
+RUN chown -R paperclip:paperclip /root/.local/bin/agent
 
 # Copy and set up entrypoint (fixes volume mount ownership at runtime)
 COPY entrypoint.sh /entrypoint.sh
