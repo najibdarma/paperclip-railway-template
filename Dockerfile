@@ -14,7 +14,7 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN curl -fsSL https://cursor.com/install | bash && \
     mkdir -p /opt/cursor-agent && \
     for d in /root/.local /root/.cursor; do \
-        [ -d "$d" ] && cp -a "$d" /opt/cursor-agent/; \
+        if [ -d "$d" ]; then cp -aL "$d" /opt/cursor-agent/; fi; \
     done && \
     chmod -R a+rX /opt/cursor-agent && \
     AGENT_BIN=$(find /opt/cursor-agent \
