@@ -3,14 +3,14 @@ FROM node:20-slim
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Install Claude CLI to a system-wide location, then ensure it's on PATH
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/root/.local/bin:${PATH}"
-RUN cp /root/.local/bin/claude /usr/local/bin/claude
+# Install Claude CLI via npm (installs directly to /usr/local/bin in node image)
+RUN npm install -g @anthropic-ai/claude-code
 
+# Install Cursor agent and copy to /usr/local/bin
 RUN curl -fsSL https://cursor.com/install | bash
 ENV PATH="/root/.local/bin:${PATH}"
-RUN cp /root/.local/bin/agent /usr/local/bin/agent
+RUN AGENT_BIN=$(find /root/.local/bin /usr/local/bin -name agent -type f 2>/dev/null | head -1) && \
+    [ -n "$AGENT_BIN" ] && cp "$AGENT_BIN" /usr/local/bin/agent || true
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
