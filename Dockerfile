@@ -6,22 +6,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-ce
 # Install Claude CLI via npm (installs directly to /usr/local/bin in node image)
 RUN npm install -g @anthropic-ai/claude-code
 
-# Install Cursor agent and copy to /usr/local/bin
-RUN curl -fsSL https://cursor.com/install | bash
-ENV PATH="/root/.local/bin:${PATH}"
-# Find the installed agent binary (may be named agent, cursor-agent, or cursor depending on version)
-# and promote it to /usr/local/bin/agent so all users (including non-root paperclip) can reach it.
-RUN AGENT_BIN=$(find /root/.local /root/.cursor /usr/local \
+# Install Cursor agent, then relocate the whole install tree out of /root
+# (mode 0700, unreachable by the non-root paperclip user) into /opt, preserving
+# its internal directory layout. The agent entry point is a Node script that
+# requires sibling files via __dirname, so copying just the binary breaks it
+# ("Cannot find module '.../index.js'") — the full tree must move together.
+RUN curl -fsSL https://cursor.com/install | bash && \
+    mkdir -p /opt/cursor-agent && \
+    for d in /root/.local /root/.cursor; do \
+        [ -d "$d" ] && cp -a "$d" /opt/cursor-agent/; \
+    done && \
+    chmod -R a+rX /opt/cursor-agent && \
+    AGENT_BIN=$(find /opt/cursor-agent \
         \( -name agent -o -name cursor-agent -o -name cursor \) \
         -type f 2>/dev/null | head -1) && \
     if [ -z "$AGENT_BIN" ]; then \
         echo "ERROR: Cursor agent binary not found after install. Installed executables:" && \
-        find /root/.local /root/.cursor -type f -executable 2>/dev/null | head -30; \
+        find /opt/cursor-agent -type f 2>/dev/null | head -30; \
         exit 1; \
     fi && \
     echo "Cursor agent found at: $AGENT_BIN" && \
-    cp "$AGENT_BIN" /usr/local/bin/agent && \
-    chmod +x /usr/local/bin/agent
+    ln -s "$AGENT_BIN" /usr/local/bin/agent
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
