@@ -9,8 +9,19 @@ RUN npm install -g @anthropic-ai/claude-code
 # Install Cursor agent and copy to /usr/local/bin
 RUN curl -fsSL https://cursor.com/install | bash
 ENV PATH="/root/.local/bin:${PATH}"
-RUN AGENT_BIN=$(find /root/.local/bin /usr/local/bin -name agent -type f 2>/dev/null | head -1) && \
-    [ -n "$AGENT_BIN" ] && cp "$AGENT_BIN" /usr/local/bin/agent || true
+# Find the installed agent binary (may be named agent, cursor-agent, or cursor depending on version)
+# and promote it to /usr/local/bin/agent so all users (including non-root paperclip) can reach it.
+RUN AGENT_BIN=$(find /root/.local /root/.cursor /usr/local \
+        \( -name agent -o -name cursor-agent -o -name cursor \) \
+        -type f 2>/dev/null | head -1) && \
+    if [ -z "$AGENT_BIN" ]; then \
+        echo "ERROR: Cursor agent binary not found after install. Installed executables:" && \
+        find /root/.local /root/.cursor -type f -executable 2>/dev/null | head -30; \
+        exit 1; \
+    fi && \
+    echo "Cursor agent found at: $AGENT_BIN" && \
+    cp "$AGENT_BIN" /usr/local/bin/agent && \
+    chmod +x /usr/local/bin/agent
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
