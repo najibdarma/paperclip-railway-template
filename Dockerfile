@@ -26,6 +26,10 @@ RUN curl -fsSL https://cursor.com/install | bash && \
         exit 1; \
     fi && \
     echo "Cursor agent found at: $AGENT_BIN" && \
+    AGENT_DIR=$(dirname "$AGENT_BIN") && \
+    if [ ! -e "$AGENT_DIR/node" ]; then \
+        ln -s "$(command -v node)" "$AGENT_DIR/node"; \
+    fi && \
     ln -s "$AGENT_BIN" /usr/local/bin/agent
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
