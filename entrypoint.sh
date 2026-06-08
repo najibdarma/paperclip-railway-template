@@ -16,14 +16,16 @@ fi
 # be lost every time the container is rebuilt.
 mkdir -p "$PERSIST_DIR"
 
-link_into_persist_dir() {
-  local rel_path="$1"
-  local home_path="$PAPERCLIP_HOME_DIR/$rel_path"
-  local persist_path="$PERSIST_DIR/$rel_path"
+# Migrates any pre-existing config at $home_path into $persist_path (first
+# run only) and replaces $home_path with a symlink to it. Shared by the
+# dir/file variants below — they differ only in how $persist_path gets
+# created when there's nothing to migrate.
+relink_into_persist_dir() {
+  local home_path="$1"
+  local persist_path="$2"
 
   mkdir -p "$(dirname "$persist_path")"
 
-  # First run: migrate any existing config into the persisted volume
   if [ -e "$home_path" ] && [ ! -L "$home_path" ]; then
     rm -rf "$persist_path"
     mv "$home_path" "$persist_path"
@@ -34,9 +36,30 @@ link_into_persist_dir() {
   ln -s "$persist_path" "$home_path"
 }
 
-for path in ".claude" ".claude.json" ".cursor"; do
-  link_into_persist_dir "$path"
-done
+# Directories must exist at $persist_path *before* symlinking — otherwise
+# the symlink dangles and tools fail with ENOENT trying to create files
+# inside it (e.g. opening ~/.claude/settings.json when ~/.claude points to
+# a directory that was never created).
+link_dir_into_persist_dir() {
+  local rel_path="$1"
+  local home_path="$PAPERCLIP_HOME_DIR/$rel_path"
+  local persist_path="$PERSIST_DIR/$rel_path"
+
+  relink_into_persist_dir "$home_path" "$persist_path"
+  mkdir -p "$persist_path"
+}
+
+# Files are safe to leave absent: opening a dangling symlink with O_CREAT
+# creates the target file on first write, as long as its parent dir exists
+# (which relink_into_persist_dir guarantees via mkdir -p "$(dirname ...)").
+link_file_into_persist_dir() {
+  local rel_path="$1"
+  relink_into_persist_dir "$PAPERCLIP_HOME_DIR/$rel_path" "$PERSIST_DIR/$rel_path"
+}
+
+link_dir_into_persist_dir ".claude"
+link_file_into_persist_dir ".claude.json"
+link_dir_into_persist_dir ".cursor"
 
 chown -R paperclip:paperclip "$PERSIST_DIR" "$PAPERCLIP_HOME_DIR"
 
