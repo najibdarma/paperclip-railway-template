@@ -63,5 +63,21 @@ link_dir_into_persist_dir ".cursor"
 
 chown -R paperclip:paperclip "$PERSIST_DIR" "$PAPERCLIP_HOME_DIR"
 
+# Install gsd-core (GSD skills/commands for Claude Code and Cursor) on first
+# boot only. It installs into ~/.claude and ~/.cursor, both of which are
+# symlinked onto the /paperclip volume above, so the install persists across
+# redeploys and this check skips it on every later boot.
+GSD_CLAUDE_MARKER="$PAPERCLIP_HOME_DIR/.claude/gsd-install-state.json"
+GSD_CURSOR_MARKER="$PAPERCLIP_HOME_DIR/.cursor/gsd-install-state.json"
+if [ ! -f "$GSD_CLAUDE_MARKER" ] || [ ! -f "$GSD_CURSOR_MARKER" ]; then
+  echo "Installing gsd-core..."
+  gosu paperclip env HOME="$PAPERCLIP_HOME_DIR" GSD_PORTABLE_HOOKS=1 \
+    npx -y @opengsd/gsd-core@latest --claude --cursor --global \
+    || echo "gsd-core install failed, continuing without it"
+  chown -R paperclip:paperclip "$PERSIST_DIR"
+else
+  echo "gsd-core already installed, skipping"
+fi
+
 # Drop privileges and run the actual command as the paperclip user
 exec gosu paperclip "$@"
