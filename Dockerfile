@@ -1,7 +1,7 @@
 FROM node:20-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates git && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
