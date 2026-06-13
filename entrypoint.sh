@@ -79,5 +79,21 @@ else
   echo "gsd-core already installed, skipping"
 fi
 
+# Install caveman (token-compression skill) for Claude Code and Cursor on
+# first boot only. It writes hooks/settings into ~/.claude and rule files
+# into ~/.cursor, both of which are symlinked onto the /paperclip volume
+# above, so the install persists across redeploys and this check skips it
+# on every later boot.
+CAVEMAN_MARKER="$PAPERCLIP_HOME_DIR/.claude/.caveman-active"
+if [ ! -f "$CAVEMAN_MARKER" ]; then
+  echo "Installing caveman..."
+  gosu paperclip env HOME="$PAPERCLIP_HOME_DIR" bash -c \
+    'curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash -s -- --all --with-hooks --non-interactive --force' \
+    || echo "caveman install failed, continuing without it"
+  chown -R paperclip:paperclip "$PERSIST_DIR"
+else
+  echo "caveman already installed, skipping"
+fi
+
 # Drop privileges and run the actual command as the paperclip user
 exec gosu paperclip "$@"
