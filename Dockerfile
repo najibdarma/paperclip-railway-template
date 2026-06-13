@@ -33,6 +33,11 @@ RUN HOME=/home/paperclip gosu paperclip bash -c 'curl -fsSL https://cursor.com/i
     echo "Cursor agent found at: $AGENT_BIN"
 ENV PATH="/home/paperclip/.local/bin:${PATH}"
 
+# Install pnpm via corepack (bundled with Node 20), skipping if a pnpm
+# binary is already present. corepack prepare downloads pnpm into the image
+# at build time so no network access is needed at runtime.
+RUN command -v pnpm >/dev/null 2>&1 || (corepack enable pnpm && corepack prepare pnpm@latest --activate)
+
 # Create the paperclip home directory (Railway volume mount point)
 RUN mkdir -p /paperclip && chown -R paperclip:paperclip /paperclip
 

@@ -61,6 +61,10 @@ link_dir_into_persist_dir ".claude"
 link_file_into_persist_dir ".claude.json"
 link_dir_into_persist_dir ".cursor"
 
+# Persist pnpm's content-addressable package store across redeploys so
+# repeated `pnpm install` runs by agents don't re-download packages.
+link_dir_into_persist_dir ".local/share/pnpm/store"
+
 chown -R paperclip:paperclip "$PERSIST_DIR" "$PAPERCLIP_HOME_DIR"
 
 # Pre-create cursor-agent's XDG config dir with the owner/mode it expects
