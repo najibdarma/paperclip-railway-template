@@ -6,6 +6,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-ce
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
 
+# gosu (used in entrypoint.sh to drop from root to paperclip) does not reset
+# env vars, so without this the final `npm start` process would inherit
+# root's HOME (e.g. /root) instead of /home/paperclip — missing the
+# persisted ~/.cursor and ~/.claude symlinks set up at runtime and breaking
+# agent login/credential persistence across redeploys.
+ENV HOME=/home/paperclip
+
 # Install Claude CLI via npm (installs directly to /usr/local/bin in node image)
 RUN npm install -g @anthropic-ai/claude-code
 
