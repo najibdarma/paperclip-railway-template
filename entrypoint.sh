@@ -63,6 +63,17 @@ link_dir_into_persist_dir ".cursor"
 
 chown -R paperclip:paperclip "$PERSIST_DIR" "$PAPERCLIP_HOME_DIR"
 
+# Pre-create cursor-agent's XDG config dir with the owner/mode it expects
+# (paperclip:paperclip, 0700). `cursor login` stat()s this dir and only
+# calls chmod() if the mode differs — left to create it itself as paperclip,
+# that chmod() fails with "EPERM: operation not permitted, chmod
+# '/home/paperclip/.config/cursor'" under Railway's sandboxed filesystem.
+# Pre-setting the mode here means cursor-agent sees it's already correct
+# and skips the chmod call.
+mkdir -p "$PAPERCLIP_HOME_DIR/.config/cursor"
+chmod 700 "$PAPERCLIP_HOME_DIR/.config/cursor"
+chown -R paperclip:paperclip "$PAPERCLIP_HOME_DIR/.config"
+
 # Install gsd-core (GSD skills/commands for Claude Code and Cursor) on first
 # boot only. It installs into ~/.claude and ~/.cursor, both of which are
 # symlinked onto the /paperclip volume above, so the install persists across
