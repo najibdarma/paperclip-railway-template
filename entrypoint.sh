@@ -61,22 +61,21 @@ link_dir_into_persist_dir ".claude"
 link_file_into_persist_dir ".claude.json"
 link_dir_into_persist_dir ".cursor"
 
+# Persist Cursor's XDG config dir so login tokens survive redeploys.
+# cursor-agent stores auth credentials here (not in ~/.cursor), so without
+# this the user must re-login after every deployment.
+# The chmod 700 below is still required: cursor login stat()s this dir and
+# calls chmod() only if the mode differs — under Railway's sandboxed fs that
+# chmod() fails with EPERM if the dir is left to cursor to create itself.
+link_dir_into_persist_dir ".config/cursor"
+chmod 700 "$PAPERCLIP_HOME_DIR/.config/cursor"
+chown -R paperclip:paperclip "$PAPERCLIP_HOME_DIR/.config"
+
 # Persist pnpm's content-addressable package store across redeploys so
 # repeated `pnpm install` runs by agents don't re-download packages.
 link_dir_into_persist_dir ".local/share/pnpm/store"
 
 chown -R paperclip:paperclip "$PERSIST_DIR" "$PAPERCLIP_HOME_DIR"
-
-# Pre-create cursor-agent's XDG config dir with the owner/mode it expects
-# (paperclip:paperclip, 0700). `cursor login` stat()s this dir and only
-# calls chmod() if the mode differs — left to create it itself as paperclip,
-# that chmod() fails with "EPERM: operation not permitted, chmod
-# '/home/paperclip/.config/cursor'" under Railway's sandboxed filesystem.
-# Pre-setting the mode here means cursor-agent sees it's already correct
-# and skips the chmod call.
-mkdir -p "$PAPERCLIP_HOME_DIR/.config/cursor"
-chmod 700 "$PAPERCLIP_HOME_DIR/.config/cursor"
-chown -R paperclip:paperclip "$PAPERCLIP_HOME_DIR/.config"
 
 # Install gsd-core (GSD skills/commands for Claude Code and Cursor) on first
 # boot only. It installs into ~/.claude and ~/.cursor, both of which are
