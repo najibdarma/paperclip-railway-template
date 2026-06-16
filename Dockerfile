@@ -4,7 +4,7 @@ FROM node:20-slim
 # openjdk-17-jre-headless: required by Maestro; headless skips GUI/AWT (~50-100 MB smaller than jre)
 # android-tools-adb: required for Maestro to communicate with Android devices/emulators
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gosu curl ca-certificates git \
+    gosu curl ca-certificates git unzip \
     openjdk-17-jre-headless \
     android-tools-adb \
     && rm -rf /var/lib/apt/lists/*
