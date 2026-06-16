@@ -1,7 +1,13 @@
 FROM node:20-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates git && rm -rf /var/lib/apt/lists/*
+# openjdk-17-jre-headless: required by Maestro; headless skips GUI/AWT (~50-100 MB smaller than jre)
+# android-tools-adb: required for Maestro to communicate with Android devices/emulators
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gosu curl ca-certificates git \
+    openjdk-17-jre-headless \
+    android-tools-adb \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user (required: Claude CLI refuses --dangerously-skip-permissions as root)
 RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /bin/bash paperclip
@@ -14,7 +20,7 @@ RUN groupadd -r paperclip && useradd -r -g paperclip -m -d /home/paperclip -s /b
 ENV HOME=/home/paperclip
 
 # Install Claude CLI via npm (installs directly to /usr/local/bin in node image)
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code && npm cache clean --force
 
 # Install Cursor agent as the paperclip user so it lands natively in
 # /home/paperclip/.local, owned by paperclip, with exactly the layout and
@@ -30,8 +36,17 @@ RUN HOME=/home/paperclip gosu paperclip bash -c 'curl -fsSL https://cursor.com/i
         find /home/paperclip/.local /home/paperclip/.cursor 2>/dev/null | head -30; \
         exit 1; \
     fi && \
-    echo "Cursor agent found at: $AGENT_BIN"
+    echo "Cursor agent found at: $AGENT_BIN" && \
+    rm -rf /tmp/*
 ENV PATH="/home/paperclip/.local/bin:${PATH}"
+
+# Install Maestro (mobile UI test runner for .maestro/ flows) as the paperclip
+# user so it lands in /home/paperclip/.maestro — the same home the agent runs
+# under at runtime, keeping credentials and config consistent.
+RUN HOME=/home/paperclip gosu paperclip bash -c \
+    'curl -Ls "https://get.maestro.mobile.dev" | bash' && \
+    rm -rf /tmp/*
+ENV PATH="/home/paperclip/.maestro/bin:${PATH}"
 
 # Install pnpm via corepack (bundled with Node 20), skipping if a pnpm
 # binary is already present. corepack prepare downloads pnpm into the image
@@ -45,14 +60,13 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy application code
 COPY . .
 
 # Give ownership of everything to the non-root user
-RUN chown -R paperclip:paperclip /app /home/paperclip
-RUN chown -R paperclip:paperclip /usr/local/bin/claude
+RUN chown -R paperclip:paperclip /app /home/paperclip /usr/local/bin/claude
 
 # Copy and set up entrypoint (fixes volume mount ownership at runtime)
 COPY entrypoint.sh /entrypoint.sh
